@@ -1,8 +1,16 @@
 import pickle
 from typing import List, Tuple, Dict
 
-
 class WordGuesser:
+    # all letters in order of their frequency in english according to
+    # 'https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html
+    all_letters = 'eariotnslcudpmhgbfywkvxzjq'
+
+    # signals whether to count the same letter multiple times
+    count_duplicates = False
+
+    # signals whether the characters should be weighted with the weight of the string the character came from
+    weighted = True
 
     def __init__(self, word):
         self.word_to_be_guessed = word
@@ -13,22 +21,42 @@ class WordGuesser:
         if self.word_length < 4 or self.word_length > 18:
             raise ValueError(f'Word must be 4-18 characters in length. {self.word_to_be_guessed} is {self.word_length}.')
 
-    def is_letter_in_the_word(self, letter: str, word: str) -> bool:
+        self.possible_words = self.load_words()
+
+        # known_letters will be updated whenever a letter that is guessed is in the word to be guessed
+        # '*' indicates a unknown character
+        self.known_letters = '*' * self.word_length
+        self.num_wrong_guesses = 0
+        self.guessed_letters = []
+
+        # flag for when all letters in the word have been found
+        self.done = False
+
+    def load_words(self) -> List[Tuple[str, int]]:
+        """
+        load all possible_words the same length as the guessing_word to be guessed
+        Returns
+        -------
+        ([(str,int)]: list of tuples of possible_words and their weights
+        """
+        return pickle.load(open(f'subsets_new/{self.word_length}.pkl', 'rb'))
+
+    # TODO could be removed
+    def is_letter_in_the_word(self, letter: str) -> bool:
         """
         This method should be overwritten
         Parameters
         ----------
         letter (str): the letter guessed
-        word (str): the word to be checked
 
         Returns
         -------
         (bool): whether the letter is in the word
         """
-        return letter in word
+        return letter in self.word_to_be_guessed
 
     @staticmethod
-    def check_match(word: str, known_letters_pattern: str, use_duplicates: bool = False) -> Tuple[bool, str]:
+    def check_match(word: str, known_letters_pattern: str) -> Tuple[bool, str]:
         """
         Check if a word matches the known letters pattern. The character '*' represents an unknown letter in the pattern.
         Also counts the letters that are in the positions where the characters are unknown in the known letters pattern
@@ -42,7 +70,6 @@ class WordGuesser:
         ----------
         word (str): guessing_word to be compared
         known_letters_pattern (str): currently known letters
-        use_duplicates (bool): signals whether to count the same letter multiple times
 
         Returns
         -------
@@ -58,7 +85,7 @@ class WordGuesser:
                 if word_char != pattern_char:
                     return False, ''
             else:
-                if use_duplicates:
+                if WordGuesser.count_duplicates:
                     missing_letters += word_char
                 else:
                     if word_char not in missing_letters:
@@ -67,16 +94,14 @@ class WordGuesser:
 
     # TODO check if the count_duplicates flag is redundant with the check_match function
     @staticmethod
-    def get_guess_list(str_list: List[Tuple[str, int]], weighted: bool = False, count_duplicates: bool = False) -> List[str]:
+    def create_guess_list(str_list: List[Tuple[str, int]], guessed_letters: List[str] = '') -> List[str]:
         """
         Generates a dictionary with all characters with weights according to their occurrences in the strings of the str_list. The result
         can be weighted with the weight of the string the character came from
         Parameters
         ----------
         str_list ([(str, int)]): list of tuples of strings and their weights
-        weighted (bool): signals whether the characters should be weighted with the weight of the string the character came from
-        count_duplicates (bool): signals whether to count the same letter multiple times
-
+        guessed_letters([str]): list of letters that have already been guessed
         Returns
         -------
         ([str]): list of letter their weight value
@@ -85,23 +110,22 @@ class WordGuesser:
         # dictionary that will hold letters and their weights
         frequency_dict = {}
         for word, freq in str_list:
-            if not count_duplicates:
+            if not WordGuesser.count_duplicates:
                 word = ''.join(set(list(word)))
             for letter in word:
-                if weighted:
+                if WordGuesser.weighted:
                     frequency_dict[letter] = frequency_dict.get(letter, 0) + freq
                 else:
                     frequency_dict[letter] = frequency_dict.get(letter, 0) + 1
 
-        # all letters in order of their frequency in english according to
-        # 'https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html
-        all_letters = 'eariotnslcudpmhgbfywkvxzjq'
-
-        # add all missing characters with decending weights in order of their frequency in all words
-        for i,letter in enumerate(all_letters):
+        # add all missing characters with decending weights in order of their frequency in all possible_words
+        for i, letter in enumerate(WordGuesser.all_letters):
             frequency_dict[letter] = frequency_dict.get(letter, -i)
 
         guess_list = WordGuesser.create_sorted_frequency_list(frequency_dict)
+
+        # remove any letters that have already been guessed
+        guess_list = [guess for guess in guess_list if guess not in guessed_letters]
 
         return guess_list
 
@@ -119,6 +143,7 @@ class WordGuesser:
         """
         return [letter for letter, frequency in sorted(list(frequency_dict.items()), key=lambda x: x[1], reverse=True)]
 
+
     @staticmethod
     def get_new_words(words: List[Tuple[str, int]], known_letters: str) -> Tuple[List[Tuple[str, int]], List[Tuple[str, int]]]:
         letter_list = []
@@ -128,21 +153,18 @@ class WordGuesser:
             match, letters = WordGuesser.check_match(word, known_letters)
             if match:
                 letter_list.append((letters, freq))
-            new_words.append((word, freq))
+                new_words.append((word, freq))
 
         return new_words, letter_list
 
-    def guess_word(self, words=None, w=False, d=False, max_incorrect_guesses: int = 6):
+    # TODO maybe remove old function
+    def guess_word(self, max_incorrect_guesses: int = 6):
         """"""
 
-        # load all words the same length as the guessing_word to be guessed
-        if words is None:
-            words = pickle.load(open(f'subsets_new/{self.word_length}.pkl', 'rb'))
-
         # # TODO replace placeholder control for when guessing_word is not recognized
-        # word_set = [word[0] for word in words]
+        # word_set = [word[0] for word in possible_words]
         # if self.word_to_be_guessed not in word_set:
-        #     raise ValueError(f'The word "{self.word_to_be_guessed} is not in the known list of words')
+        #     raise ValueError(f'The word "{self.word_to_be_guessed} is not in the known list of possible_words')
 
         # known_letters will be updated whenever a letter that is guessed is in the word to be guessed
         # '*' indicates a unknown character
@@ -155,25 +177,22 @@ class WordGuesser:
         guessed_letters = []
 
         # TODO improve comments here
-        letter_list = words
+        letter_list = self.possible_words
 
         while self.word_to_be_guessed != known_letters:
             # get sorted letter frequency list
-            guess_list = WordGuesser.get_guess_list(letter_list, w, d)
+            guess_list = WordGuesser.create_guess_list(letter_list, guessed_letters)
 
             # guess letters in order of their calculated_weights
             for guess in guess_list:
                 # prevent guessing the same letter multiple times
-                if guess in guessed_letters:
-                    continue
-                else:
-                    guessed_letters.append(guess)
-                    # check if all letters have been guessed
-                    if len(guessed_letters) >= 26:
-                        return num_wrong_guesses, known_letters
+                guessed_letters.append(guess)
+                # check if all letters have been guessed
+                if len(guessed_letters) >= 26:
+                    return num_wrong_guesses, known_letters
 
                 # check if letter is in guessing_word
-                if self.is_letter_in_the_word(guess, self.word_to_be_guessed):
+                if self.is_letter_in_the_word(guess):
                     # insert letter in to known_letters_pattern at correct places
                     for i, letter in enumerate(self.word_to_be_guessed):
                         if guess == letter:
@@ -181,30 +200,63 @@ class WordGuesser:
                     break
                 else:
                     num_wrong_guesses += 1
-            # print(known_letters_pattern)
-            words, letter_list = WordGuesser.get_new_words(words, known_letters)
+
+            self.possible_words, letter_list = WordGuesser.get_new_words(self.possible_words, known_letters)
 
         return num_wrong_guesses, known_letters
 
+    def get_guess_list(self) -> List[str]:
+        # get sorted letter frequency list
+        self.possible_words, letter_list = WordGuesser.get_new_words(self.possible_words, self.known_letters)
+        return WordGuesser.create_guess_list(letter_list, self.guessed_letters)
+
+    def update_known_letters(self, letter: str, positions: List[int]) -> None:
+        for position in positions:
+            self.known_letters = self.known_letters[:position] + letter + self.known_letters[position + 1:]
+
+    def letter_guessed(self, letter: str, positions: List[int] = []) -> int:
+        if letter in self.guessed_letters:
+            raise ValueError(f'The letter "{letter}" has already been guessed')
+
+        self.guessed_letters.append(letter)
+
+        if len(positions) > 0:
+            self.update_known_letters(letter, positions)
+            # check if all letters are known
+            if '*' not in self.known_letters:
+                self.done = True
+        else:
+            self.num_wrong_guesses += 1
+
+        return self.num_wrong_guesses
+
+
+import time
 
 if __name__ == '__main__':
-    guessing_word = 'human'
-    wg = WordGuesser(guessing_word)
-    num_wrong, letters_known = wg.guess_word(w=True, d=False)
-    print(num_wrong, letters_known)
-    # words = pickle.load(open(f'subsets_new/{8}.pkl', 'rb'))
+    pass
+    # guessing_word = 'humane'
+    # total_time = 0
+    # for x in range(10):
+    #     wg = WordGuesser(guessing_word)
+    #     start = time.perf_counter()
+    #     num_wrong, letters_known = wg.guess_word()
+    #     total_time += (time.perf_counter() - start)
+    # # print(num_wrong, letters_known)
+    # print(total_time)
+    # possible_words = pickle.load(open(f'subsets_new/{8}.pkl', 'rb'))
     # weighted = True
     # duplicates = True
     # total_time = 0
     # tot_wrong = 0
     # itts = 10000
-    # guessing_words = random.sample(words, itts)
+    # guessing_words = random.sample(possible_words, itts)
     # for i in range(itts):
-    #     words = pickle.load(open(f'subsets/{8}.pkl', 'rb'))
+    #     possible_words = pickle.load(open(f'subsets/{8}.pkl', 'rb'))
     #     word_to_be_guessed = guessing_words[i][0]
     #     print(word_to_be_guessed)
     #     start = time.perf_counter()
-    #     num_wrong, _ = guess_word(word_to_be_guessed, words,weighted,duplicates)
+    #     num_wrong, _ = guess_word(word_to_be_guessed, possible_words,weighted,duplicates)
     #     total_time += (time.perf_counter() - start)
     #     tot_wrong += num_wrong
     #     print(num_wrong)

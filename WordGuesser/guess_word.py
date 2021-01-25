@@ -91,11 +91,11 @@ for word_to_be_guessed in master_words[1000:1100]:
     # print(word_to_be_guessed)
     word_length = len(word_to_be_guessed)
     current_known = '*' * word_length
-    # words come from https://norvig.com/ngrams/count_1w.txt
+    # possible_words come from https://norvig.com/ngrams/count_1w.txt
     words = copy.deepcopy(master_words)
     # get guessing_word list with matching length
 
-    # print(len(words))
+    # print(len(possible_words))
     letter_frequency = FIRST_GUESS[word_length]
     guessed_letters = []
     wrong = 0
@@ -127,8 +127,8 @@ for word_to_be_guessed in master_words[1000:1100]:
                 new_words.append(word)
         letter_frequency = get_letter_frequency(leftover_letters).items()
         words = new_words
-        # print(sorted(words,key=lambda x:x[1],reverse=True))
-        # print(len(words))
+        # print(sorted(possible_words,key=lambda x:x[1],reverse=True))
+        # print(len(possible_words))
         # print(current_known)
         # print(guessed_letters)
 

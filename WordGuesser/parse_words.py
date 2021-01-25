@@ -12,7 +12,7 @@ words = [(word.split('\t')[0], int(word.split('\t')[1])) for word in words[:-1]]
 # while True:
 words_lengths = set([len(word[0]) for word in words])
 print(words_lengths)
-# save all words of the same length into separate files
+# save all possible_words of the same length into separate files
 
 first_guess = ['' for _ in range(20)]
 
@@ -50,18 +50,18 @@ def f7(seq):
 #
 #
 # with open('wiki-100k.txt', 'r', encoding='utf-8') as f:
-#     words = f.read().split('\n')
-# print(words)
-# words = [guessing_word.lower() for guessing_word in words if guessing_word[:4] != '#!co' and only_chars(ascii_lowercase,guessing_word)]
-# for guessing_word in words:
+#     possible_words = f.read().split('\n')
+# print(possible_words)
+# possible_words = [guessing_word.lower() for guessing_word in possible_words if guessing_word[:4] != '#!co' and only_chars(ascii_lowercase,guessing_word)]
+# for guessing_word in possible_words:
 #     if ' ' in guessing_word:
 #         print(guessing_word)
-# words = f7(words)
-# words_lengths = set([len(guessing_word) for guessing_word in words])
+# possible_words = f7(possible_words)
+# words_lengths = set([len(guessing_word) for guessing_word in possible_words])
 # print(words_lengths)
 #
 # for length in sorted(list(words_lengths))[0:19]:
-#     word_subset = [guessing_word for guessing_word in words if len(guessing_word) == length]
+#     word_subset = [guessing_word for guessing_word in possible_words if len(guessing_word) == length]
 #     # with open(f'subsets/{length}.txt', 'w') as outfile:
 #     #     outfile.write('\n'.join(['\t'.join([guessing_word[0], str(guessing_word[1])]) for guessing_word in sorted(word_subset, key=lambda x: x[1], reverse=True)]))
 #     pickle.dump(word_subset, open(f'subsets/{length}.pkl', 'wb'))
@@ -75,15 +75,15 @@ def f7(seq):
 # import json
 #
 # j_dict = json.load(open('words_dictionary.json', 'r'))
-# words = list(j_dict.keys())
+# possible_words = list(j_dict.keys())
 #
-# words = f7(words)
+# possible_words = f7(possible_words)
 #
-# words_lengths = set([len(guessing_word) for guessing_word in words])
+# words_lengths = set([len(guessing_word) for guessing_word in possible_words])
 # print(words_lengths)
 #
 # for length in sorted(list(words_lengths))[0:19]:
-#     word_subset = [guessing_word for guessing_word in words if len(guessing_word) == length]
+#     word_subset = [guessing_word for guessing_word in possible_words if len(guessing_word) == length]
 #     # with open(f'subsets/{length}.txt', 'w') as outfile:
 #     #     outfile.write('\n'.join(['\t'.join([guessing_word[0], str(guessing_word[1])]) for guessing_word in sorted(word_subset, key=lambda x: x[1], reverse=True)]))
 #     pickle.dump(word_subset, open(f'subsets/{length}.pkl', 'wb'))
@@ -108,19 +108,19 @@ def f7(seq):
     # first_guess[length] =
 
 # print(first_guess)
-# pickle.dump(words,open('third.pkl','wb'))
+# pickle.dump(possible_words,open('third.pkl','wb'))
 #
 # import timeit
 # r1 = r'''
 # with open('count_1w.txt','r') as f:
-#     words = f.read().split('\n')
+#     possible_words = f.read().split('\n')
 #
-# words = {guessing_word.split('\t')[0]:int(guessing_word.split('\t')[1]) for guessing_word in words[:-1]}
+# possible_words = {guessing_word.split('\t')[0]:int(guessing_word.split('\t')[1]) for guessing_word in possible_words[:-1]}
 # '''
 #
 # r2 = '''
 # import pickle
-# words = pickle.load(open('third.pkl','rb'))
+# possible_words = pickle.load(open('third.pkl','rb'))
 # '''
 #
 # print(timeit.timeit(r1,number = 1))
